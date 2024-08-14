@@ -7,7 +7,7 @@ subset_id=$6
 dataset_split=$7
 save_dir_pth=$8
 pckg_dir=$9
-dataset=$10
+dataset=${10}
 
 model_type=pretrained
 
@@ -57,14 +57,14 @@ if [ -f $save_dir ]; then
 fi
 
 fbank_dir="${save_dir_pth}/fbanks/${dataset}_${dataset_split}_sample${data_sample}/"
-mkdir -p $fbank_dir
-if [ "$rep_type" = "local" ]; then
-	echo -e "\nExtracting mel filterbank features"
-	 python codes/prepare/extract_fbank.py save_rep \
-	 --utt_id_fn `realpath $utt_id_fn` \
-	 --save_dir `realpath $fbank_dir` \
-	 --data_split $dataset_split
-fi
+# mkdir -p $fbank_dir
+# if [ "$rep_type" = "local" ]; then
+# 	echo -e "\nExtracting mel filterbank features"
+# 	 python codes/prepare/extract_fbank.py save_rep \
+# 	 --utt_id_fn `realpath $utt_id_fn` \
+# 	 --save_dir `realpath $fbank_dir` \
+# 	 --data_split $dataset_split
+# fi
 
 echo -e "\n\nExtracting ${rep_type} features from ${model_type} ${model_name} model"
 echo -e "for sample set $utt_id_fn"

@@ -38,7 +38,7 @@ class getCCA:
         mean_score=False,
         eval_single_layer=False,
         layer_num=-1,
-        instance_cap=None, # cap on number of instances per word
+        instance_cap=None,  # cap on number of instances per word
     ):
         """
         exp_name: cca-mel | cca-intra | cca-inter | cca-glove | cca-agwe
@@ -221,7 +221,7 @@ class getCCA:
             f"{num_labels-len(valid_indices)} of {num_labels} {self.span} segments dropped"
         )
         return valid_indices, label_idx_dct
-    
+
     def update_idx_lst(self, valid_indices, label_idx_dct):
         """
         Update the indices to have less than instance_cap instances
@@ -237,7 +237,7 @@ class getCCA:
         return new_valid_indices
 
     def cca_embed(self):
-        check_cond = 'semantic' in self.exp_name or 'syntactic' in self.exp_name
+        check_cond = "semantic" in self.exp_name or "syntactic" in self.exp_name
         if check_cond:
             rep_dir = self.rep_dir
             all_labels = read_lst(os.path.join(rep_dir, "labels.lst"))
@@ -246,22 +246,29 @@ class getCCA:
                 valid_indices = self.update_idx_lst(valid_indices, label_idx_dct)
                 valid_label_lst = [all_labels[idx1] for idx1 in valid_indices]
                 all_embed = np.array(
-                        [embed_dct[all_labels[idx1]] for idx1 in valid_indices]
-                    )
+                    [embed_dct[all_labels[idx1]] for idx1 in valid_indices]
+                )
         else:
             rep_dir = os.path.join(self.rep_dir, "contextualized", f"{self.span}_level")
             all_labels = []
         embed_dct = load_dct(self.embed_fn)
         num_splits = self.get_num_splits()
-        for layer_id in range(self.num_transformer_layers + 1):
+
+        # + 1だとバグるので一旦変更
+        # for layer_id in range(self.num_transformer_layers + 1):
+        for layer_id in range(self.num_transformer_layers):
             if self.get_score_flag(layer_id):
                 if check_cond:
-                    all_rep = np.load(os.path.join(rep_dir, f"layer_{self.layer_num}.npy"))
+                    all_rep = np.load(
+                        os.path.join(rep_dir, f"layer_{self.layer_num}.npy")
+                    )
                     all_rep = all_rep[np.array(valid_indices)]
                 else:
                     all_rep = []
                     for split_num in range(num_splits):
-                        rep_fn = os.path.join(rep_dir, str(split_num), f"layer_{layer_id}.npy")
+                        rep_fn = os.path.join(
+                            rep_dir, str(split_num), f"layer_{layer_id}.npy"
+                        )
                         rep_mat = np.load(rep_fn)
                         all_rep.extend(rep_mat)
                         if layer_id == 0 or self.eval_single_layer:
@@ -294,10 +301,10 @@ class getCCA:
 
     def cca_agwe(self):
         self.cca_embed()
-    
+
     def cca_semantic(self):
         self.cca_embed()
-    
+
     def cca_syntactic(self):
         self.cca_embed()
 
@@ -451,13 +458,13 @@ def evaluate_cca(
         span,
         mean_score,
         eval_single_layer,
-        layer_num
+        layer_num,
     )
     getattr(cca_obj, exp_name)()
 
     if mean_score:
         save_fn = save_fn.replace(".json", "_mean.json")
-    
+
     if eval_single_layer:
         assert len(cca_obj.score_dct) == 1
         sample_num = save_fn.split("_")[-1].split(".")[0][-1]
@@ -472,6 +479,7 @@ def evaluate_cca(
     else:
         save_dct(save_fn, cca_obj.score_dct)
     print(f"Result saved at {save_fn}")
+
 
 def evaluate_wordsim(model_name, wordsim_task_fn, embedding_dir, save_fn):
     wordsim_tasks = load_dct(wordsim_task_fn)
@@ -496,24 +504,30 @@ def evaluate_wordsim(model_name, wordsim_task_fn, embedding_dir, save_fn):
         res_dct["macro average"][layer_num] /= len(wordsim_tasks)
     save_dct(save_fn, res_dct)
 
+
 def evaluate_spokensts(
-        model_name,
-        rep_dir,
-        gt_score_fn,
-        pair_idx_fn,
-        res_dir,
-        sample_data_fn,
+    model_name,
+    rep_dir,
+    gt_score_fn,
+    pair_idx_fn,
+    res_dir,
+    sample_data_fn,
 ):
-    rep_dir = os.path.join(rep_dir, model_name, 'utt_level')
+    rep_dir = os.path.join(rep_dir, model_name, "utt_level")
     num_splits = len(glob(os.path.join(sample_data_fn, "split*.tsv")))
     gt_dct = load_dct(gt_score_fn)
     pair_idx_dct = load_dct(pair_idx_fn)
-    layer_lst = [item.split('.')[0].split('_')[1] for item in os.listdir(os.path.join(rep_dir, "0"))]
+    layer_lst = [
+        item.split(".")[0].split("_")[1]
+        for item in os.listdir(os.path.join(rep_dir, "0"))
+    ]
     res_dct = {}
     for layer_num in layer_lst:
         rep_mat = []
         for split_idx in range(num_splits):
-            rep_mat.extend(np.load(os.path.join(rep_dir, str(split_idx), f"layer_{layer_num}.npy")))
+            rep_mat.extend(
+                np.load(os.path.join(rep_dir, str(split_idx), f"layer_{layer_num}.npy"))
+            )
         rep_mat = np.array(rep_mat)
         cosine_similarities, human_judgements = [], []
         for pair_name in gt_dct:
@@ -522,11 +536,14 @@ def evaluate_spokensts(
                 all_cos_sim.append(1 - cosine(rep_mat[idx1], rep_mat[idx2]))
             assert len(all_cos_sim) == 16
             cosine_similarities.extend(all_cos_sim)
-            human_judgements.extend([gt_dct[pair_name]]*len(all_cos_sim))
-    
-        srho_score, _ = spearmanr(np.array(cosine_similarities), np.array(human_judgements))
+            human_judgements.extend([gt_dct[pair_name]] * len(all_cos_sim))
+
+        srho_score, _ = spearmanr(
+            np.array(cosine_similarities), np.array(human_judgements)
+        )
         res_dct[layer_num] = srho_score
-    save_dct(os.path.join(res_dir, f'{model_name}_spoken_sts.json'), res_dct)
+    save_dct(os.path.join(res_dir, f"{model_name}_spoken_sts.json"), res_dct)
+
 
 if __name__ == "__main__":
     fire.Fire(

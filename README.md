@@ -84,6 +84,8 @@ You can find an abridged and collated version of these steps at [examples/recipe
 
 ```
 . examples/recipe.sh $path_to_librispeech_data $ckpt_dir $pckg_dir
+
+bash examples/recipe.sh /home/minami/layerwise-analysis-dataset/LibriSpeech /home/minami/layerwise-analysis-dataset/model_checkpoint /home/minami/layerwise-analysis-dataset/model_checkpoint
 ``` 
 Perform step 1a below, and read the accompanying [README.md](https://github.com/ankitapasad/layerwise-analysis/blob/main/examples/README.md) before running the script. 
 
@@ -96,6 +98,8 @@ Follow the next two steps to prepare data files.
 
 ```
 bash scripts/prepare_alignment_files.sh librispeech $path_to_librispeech_data $alignment_data_dir
+
+bash scripts/prepare_alignment_files.sh librispeech /home/minami/layerwise-analysis-dataset/LibriSpeech /home/minami/layerwise-analysis-dataset/alignments
 ```
 This will download and reformat the phone and word alignment files for Librispeech and save the alignments as dictionary files to `$alignment_data_dir`. These `.json` files map each phone/word type to a list of tuples `(utt_id, path_to_wav, start_time, end_time)`. This might take 30 minutes. _Note_: Uncomment step #3 commands if you intend to apply MI tools, this will add a few more minutes of processing time.  
 
@@ -105,6 +109,12 @@ data_sample=1
 dataset_split=dev-clean
 span=frame
 bash scripts/create_librispeech_data_samples.sh $data_sample $path_to_librispeech_data $alignment_data_dir $dataset_split $span
+
+bash scripts/create_librispeech_data_samples.sh 1 /home/minami/layerwise-analysis-dataset/LibriSpeech /home/minami/layerwise-analysis-dataset/alignments dev-clean frame
+
+bash scripts/create_librispeech_data_samples.sh 1 /home/minami/layerwise-analysis-dataset/LibriSpeech /home/minami/layerwise-analysis-dataset/alignments dev-clean phone
+
+bash scripts/create_librispeech_data_samples.sh 1 /home/minami/layerwise-analysis-dataset/LibriSpeech /home/minami/layerwise-analysis-dataset/alignments dev-clean word
 ```
 This will randomly sample audio utterances and phone and word segment instances from Librispeech. The list of sampled utterance ids will be saved to the `data_samples/librispeech` directory.
 
@@ -124,6 +134,8 @@ We generate the word samples for linguistic features separately because these ex
 Save formatted semantic and syntactic attributes and create the word samples for analysis.
 ```
 bash scripts/prep_linguistic_attributes_and_word_samples.sh $save_dir_pth $alignment_data_dir
+
+bash scripts/prep_linguistic_attributes_and_word_samples.sh /home/minami/layerwise-analysis-dataset/linguistic_features /home/minami/layerwise-analysis-dataset/alignments
 ```
 
 ### e. Prepare other embedding maps
@@ -132,6 +144,12 @@ Download and store GloVe and AGWE embedding maps as dictionary files.
 bash scripts/save_embeddings.sh $save_dir_pth $alignment_data_dir agwe
 bash scripts/save_embeddings.sh $save_dir_pth $alignment_data_dir glove
 bash scripts/save_embeddings.sh $save_dir_pth $alignment_data_dir one-hot
+
+bash scripts/save_embeddings.sh /home/minami/layerwise-analysis-dataset/embeddings/agwe /home/minami/layerwise-analysis-dataset/alignments agwe
+
+bash scripts/save_embeddings.sh /home/minami/layerwise-analysis-dataset/embeddings/glove /home/minami/layerwise-analysis-dataset/alignments glove
+
+bash scripts/save_embeddings.sh /home/minami/layerwise-analysis-dataset/embeddings/one-hot /home/minami/layerwise-analysis-dataset/alignments one-hot
 ```
 
 ### f. Prepare spoken STS
@@ -139,6 +157,8 @@ Install [datasets package](https://huggingface.co/docs/datasets/en/installation)
 
 ```
 bash scripts/prep_spoken_sts.sh $path_to_sts_data
+
+bash scripts/prep_spoken_sts.sh /home/minami/layerwise-analysis-dataset/spoken_sts_dataset
 ```
 
 
@@ -160,6 +180,66 @@ Frame-level representations from the 7 convolutional layers
 rep_type=local
 span=frame
 bash scripts/extract_rep.sh $model_name $ckpt_dir $data_sample $rep_type $span $subset_id $dataset_split $save_dir_pth $pckg_dir librispeech
+
+bash scripts/extract_rep.sh \
+wav2vec_small \
+"/home/minami/layerwise-analysis-dataset/model_checkpoint" \
+1 \
+local \
+frame \
+0 \
+dev-clean \
+/home/minami/layerwise-analysis-dataset/model_rep \
+"/home/minami/layerwise-analysis-dataset/model_checkpoint" \
+librispeech
+
+bash scripts/extract_rep.sh \
+wav2vec_small \
+"/home/minami/layerwise-analysis-dataset/model_checkpoint" \
+1 \
+contextualized \
+frame \
+0 \
+dev-clean \
+/home/minami/layerwise-analysis-dataset/model_rep \
+"/home/minami/layerwise-analysis-dataset/model_checkpoint" \
+librispeech
+
+bash scripts/extract_rep.sh \
+wav2vec_small \
+"/home/minami/layerwise-analysis-dataset/model_checkpoint" \
+1 \
+contextualized \
+phone \
+0 \
+dev-clean \
+/home/minami/layerwise-analysis-dataset/model_rep \
+"/home/minami/layerwise-analysis-dataset/model_checkpoint" \
+librispeech
+
+bash scripts/extract_rep.sh \
+wav2vec_small \
+"/home/minami/layerwise-analysis-dataset/model_checkpoint" \
+1 \
+contextualized \
+word \
+0 \
+dev-clean \
+/home/minami/layerwise-analysis-dataset/model_rep \
+"/home/minami/layerwise-analysis-dataset/model_checkpoint" \
+librispeech
+
+bash scripts/extract_rep.sh \
+wav2vec_small \
+"/home/minami/layerwise-analysis-dataset/model_checkpoint" \
+1 \
+contextualized \
+all_words \
+0 \
+dev-clean \
+/home/minami/layerwise-analysis-dataset/model_rep \
+"/home/minami/layerwise-analysis-dataset/model_checkpoint" \
+librispeech
 ```
 
 Similarly for extracting representations from transformer layers, **run the above script with following changes to the arguments**: 
@@ -186,6 +266,14 @@ Example: Canonical correlation analysis between the extracted representations an
 exp_name=cca_mel
 span=frame
 bash scripts/get_cca_scores.sh $model_name $data_sample $exp_name $span $save_dir_pth
+
+bash scripts/get_cca_scores.sh \
+wav2vec_small \
+1 \
+cca_glove \
+word \
+/home/minami/layerwise-analysis-dataset/embeddings/glove/embeddings \
+/home/minami/layerwise-analysis-dataset/model_rep
 ```
 
 In order to evaluate a single layer at a time, pass `$layer_num` to the same script

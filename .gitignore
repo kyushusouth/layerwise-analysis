@@ -12,3 +12,5 @@ save/
 **/*.pyc
 
 run.sh
+.*
+test/

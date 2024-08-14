@@ -99,15 +99,18 @@ class ModelLoader:
 
     def fastvgs_plus_coco(self):
         self.fastvgs()
-    
+
     def randominit(self):
         """
         Uses pre-trained model ckpt to obtain model arguments and task config
         """
         import fairseq.models.wav2vec.wav2vec2 as w2v
-        _, args, task = fairseq.checkpoint_utils.load_model_ensemble_and_task([self.ckpt_pth])
+
+        _, args, task = fairseq.checkpoint_utils.load_model_ensemble_and_task(
+            [self.ckpt_pth]
+        )
         task_cfg = task.cfg
-        cfg_cls = w2v.Wav2Vec2Config(**args['model'])
+        cfg_cls = w2v.Wav2Vec2Config(**args["model"])
         encoder = w2v.Wav2Vec2Model(cfg_cls)
         return encoder, task_cfg
 
@@ -280,7 +283,17 @@ class FeatExtractor:
 
     def fairseq_extractor(self):
         with torch.no_grad():
-            in_rep, local_features = self.encoder.feature_extractor(self.in_data)
+            # self.in_data: (B, T)
+            local_features = []
+            for i, layers in enumerate(self.encoder.feature_extractor.conv_layers):
+                if i == 0:
+                    local_feature = layers(self.in_data.unsqueeze(0))  # (B, C, T)
+                    local_features.append(local_feature)
+                else:
+                    local_feature = layers(local_features[-1])  # (B, C, T)
+                    local_features.append(local_feature)
+            in_rep = local_features[-1]  # (B, C, T)
+            # in_rep, local_features = self.encoder.feature_extractor(self.in_data)
             encoder_out = self.encoder(self.in_data, features_only=True, mask=False)
             if self.rep_type == "quantized" and "hubert" not in self.model_name:
                 self.z_discrete, self.indices = self.encoder.quantize(self.in_data)
@@ -365,7 +378,7 @@ class FeatExtractor:
                     .squeeze(0)
                     .cpu()
                     .numpy()
-                )
+                )  # (T, C)
                 rep_dct[layer_num].append(curr_layer_rep)
                 num_samples_last = self.local_features[layer_num - 1].shape[-1]
             else:
@@ -373,7 +386,7 @@ class FeatExtractor:
                     PER_LAYER_TRANSFORM_DCT[layer_num]["kernel"],
                     PER_LAYER_TRANSFORM_DCT[layer_num]["stride"],
                     self.local_features[layer_num - 1],
-                )
+                )  # (T, C)
                 rep_dct[layer_num].append(transformed_rep)
                 num_samples_rest = transformed_rep.shape[0]
         fbank = (
@@ -460,6 +473,6 @@ class FeatExtractor:
             out_fn = os.path.join(out_dir, "layer_" + str(layer_num) + ".npy")
             np.save(out_fn, rep_mat)
         out_fn = os.path.join(out_dir, "n_frames.txt")
-        with open(out_fn, 'w') as f:
+        with open(out_fn, "w") as f:
             for n in nframes:
-                f.write(f'{n}\n')
+                f.write(f"{n}\n")

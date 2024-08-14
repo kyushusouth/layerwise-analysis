@@ -46,7 +46,7 @@ def save_rep(
     """
     assert rep_type in ["local", "quantized", "contextualized"]
 
-    model_obj = ModelLoader(ckpt_pth, model_type, pckg_dir, dict_fn)
+    model_obj = ModelLoader(ckpt_pth, model_type, None, dict_fn)
     encoder, task_cfg = getattr(model_obj, model_name.split("_")[0])()
 
     Path(save_dir).mkdir(exist_ok=True, parents=True)
@@ -57,7 +57,9 @@ def save_rep(
         utt_id_lst = read_lst(utt_id_fn)
         label_lst = []
         label_lst_fn = utt_id_fn.replace("word_segments_", "labels_")
-        new_label_lst_fn = os.path.join(save_dir, "..", f'labels_{save_dir.split("/")[-1]}.lst')
+        new_label_lst_fn = os.path.join(
+            save_dir, "..", f'labels_{save_dir.split("/")[-1]}.lst'
+        )
         if not os.path.exists(new_label_lst_fn):
             shutil.copy(label_lst_fn, new_label_lst_fn)
     else:
@@ -80,7 +82,7 @@ def save_rep(
         if span == "frame" or span == "utt":
             time_stamp_lst = None
             utt_id, wav_fn = item.split("\t")
-        elif ".lst" in utt_id_fn: # all-words with samples saved as lst
+        elif ".lst" in utt_id_fn:  # all-words with samples saved as lst
             utt_id, wav_fn, start_time, end_time, wrd = item.split(",")
             time_stamp_lst = [[start_time, end_time, wrd]]
         else:
@@ -103,10 +105,8 @@ def save_rep(
             extract_obj.extract_local_rep(
                 rep_dct, transformed_fbank_lst, truncated_fbank_lst
             )
-
         elif rep_type == "contextualized":
             extract_obj.extract_contextualized_rep(rep_dct, time_stamp_lst, label_lst)
-
         elif rep_type == "quantized":
             extract_obj.extract_quantized_rep(
                 quantized_features,
@@ -143,10 +143,11 @@ def save_rep(
             os.path.join(save_dir, "quantized_features.pkl"), quantized_features_dct
         )
         save_dct(os.path.join(save_dir, "discrete_indices.pkl"), discrete_indices_dct)
-        
+
     print("%s representations saved to %s" % (rep_type, save_dir))
 
     print("Time required: %.1f mins" % ((time.time() - start) / 60))
+
 
 def combine(
     model_name,
@@ -157,14 +158,10 @@ def combine(
     """
     Combine all extracted contextualzed word embeddings into a single pkl file
     """
-    embedding_dir = os.path.join(
-        save_dir,
-        model_name,
-        "librispeech",
-        subfname)
+    embedding_dir = os.path.join(save_dir, model_name, "librispeech", subfname)
     num_splits = len(glob(os.path.join(embedding_dir, "*", "layer_0.npy")))
     num_layers = len(glob(os.path.join(embedding_dir, "0", "layer_*.npy")))
-    
+
     labels_lst = read_lst(os.path.join(embedding_dir, "labels_0.lst"))
     for split_num in range(1, num_splits):
         labels_lst_1 = read_lst(os.path.join(embedding_dir, f"labels_{split_num}.lst"))
@@ -180,15 +177,19 @@ def combine(
         print(layer_num)
         rep_mat = np.load(os.path.join(embedding_dir, "0", f"layer_{layer_num}.npy"))
         for split_num in tqdm(range(1, num_splits)):
-            rep_mat_1 = np.load(os.path.join(embedding_dir, str(split_num), f"layer_{layer_num}.npy"))
+            rep_mat_1 = np.load(
+                os.path.join(embedding_dir, str(split_num), f"layer_{layer_num}.npy")
+            )
             rep_mat = np.concatenate((rep_mat, rep_mat_1), axis=0)
         np.save(os.path.join(embedding_dir, f"layer_{layer_num}.npy"), rep_mat)
-   
+
     write_to_file("\n".join(labels_lst), os.path.join(embedding_dir, "labels.lst"))
 
 
 if __name__ == "__main__":
-    fire.Fire({
-        "save_rep": save_rep,
-        "combine": combine, 
-    })
+    fire.Fire(
+        {
+            "save_rep": save_rep,
+            "combine": combine,
+        }
+    )

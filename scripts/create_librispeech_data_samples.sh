@@ -10,7 +10,7 @@ dataset=librispeech
 audio_ext=flac
 dir_depth=3
 
-if [ "$span" = "frame" ]; then	
+if [ "$span" = "frame" ]; then
 	echo -e "\nSampling ${num_samples} utterances for extracting frame-level features"
 	save_dir="data_samples/${dataset}/frame_level"
 	mkdir -p $save_dir

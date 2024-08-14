@@ -142,7 +142,7 @@ def combine_alignments(data_dir, data_split, token_type):
             alignment_lst = alignment_dct[token]
             _ = combined_dct.setdefault(token, [])
             combined_dct[token].extend(alignment_lst)
-    
+
     save_dct(
         os.path.join(data_dir, f"alignment_{token_type}_{data_split}.json"),
         combined_dct,

@@ -2,8 +2,9 @@ model_name=$1
 data_sample=$2
 exp_name=$3
 span=$4
-save_dir_pth=$5
-layer_num=$6
+embed_dir=$5
+save_dir_pth=$6
+layer_num=$7
 
 dataset=librispeech
 dataset_split=dev-clean
@@ -19,7 +20,6 @@ rep_dir="$save_dir_pth/${model_name}/${sub_dir_name}"
 fbank_dir="$save_dir_pth/fbanks/${sub_dir_name}"
 save_dir="logs/${dataset}_${model_name}"
 mkdir -p $save_dir
-embed_dir="$save_dir_pth/embeddings"
 rep_dir2="${save_dir_pth}/${model_name}_${ft_data}/${sub_dir_name}"
 sample_data_fn="data_samples/librispeech/${span}_level/${dataset_split}_segments_sample${data_sample}_0.json"
 if [ "$exp_name" = "cca_intra" ]; then
